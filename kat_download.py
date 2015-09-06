@@ -28,8 +28,8 @@ def search_for_available_download(number, config):
         m = filepattern.search(os.path.basename(f))
         if m and int(m.group('number'))+1 >= number and \
            datetime.fromtimestamp(os.path.getmtime(f)) > datetime.now() + timedelta(days=-2):
-            #print('Fichier "%s" trop récent...' % (f, ))
-            logger.info('Fichier "%s" trop récent...' % (os.path.basename(f), ))
+            #print('File "%s" too recent...' % (f, ))
+            logger.info('File "%s" too recent...' % (os.path.basename(f), ))
             return number
 
     n = number
@@ -40,14 +40,14 @@ def search_for_available_download(number, config):
         for e in feed.entries:
             m = filepattern.search(e['title'])
             if m and int(m.group('number')) == n:
-                logger.info("Recherche de l'épisode #%d de %s : démarrage du téléchargement..." % (n, config['title']))
-                print("Recherche de l'épisode #%d de %s : démarrage du téléchargement..." % (n, config['title']))
+                logger.info("Searching for episode #%d of %s : download starting..." % (n, config['title']))
+                print("Searching for episode #%d of %s : download starting..." % (n, config['title']))
                 with open(os.path.abspath(os.path.join(config['torrentdest'], os.path.basename(e['torrent_filename']))), 'w') as torrent:
                     torrent.write("d10:magnet-uri%d:%se" % (len(e['torrent_magneturi']), e['torrent_magneturi']))
                 n += 1
                 break
         else:
-            logger.info("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
+            logger.info("Searching episode #%d of %s : not available..." % (n, config['title']))
             #print("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
             break
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     Parser.add_argument("what", nargs='+', metavar="CONFIG_SECTION",
                         help="Sections of the configuration file where to get the download details.")
     Args = Parser.parse_args()
-    
+
     Config = RawConfigParser(defaults= { 'number': 1 })
     Config.read(Args.config)
 
