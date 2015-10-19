@@ -38,13 +38,11 @@ def search_for_available_download(number, config):
     n = number
     retries = 0
     while True:
-        #feed = parse('naruto.xml')
         keywords = config['searchkeywords'] % { 'number': n }
-        #print('https://cohen.glop.ovh/kat/%s/?rss=1' % (quote(keywords), ))
-        feed = parse('https://cohen.glop.ovh/kat/%s/?rss=1' % (quote(keywords), ))
+        feed = parse('https://kat.cr/usearch/%s/?rss=1' % (quote(keywords), ))
         if feed.bozo:
             if isinstance(feed.bozo_exception, SSLError):
-                logger.info("Recherche de l'épisode #%d de %s : SSLError" % (n, config['title']))
+                logger.info("Searching for episode #%d of %s: SSLError" % (n, config['title']))
                 if retries < 10:
                     retries += 1
                     sleep(2)
@@ -52,11 +50,11 @@ def search_for_available_download(number, config):
                 else:
                     break
             elif isinstance(feed.bozo_exception, ParseException):
-                logger.info("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
+                logger.info("Searching for episode #%d of %s: not available..." % (n, config['title']))
                 #print("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
                 break
             else:
-                logger.info("Recherche de l'épisode #%d de %s : autre erreur..." % (n, config['title']))
+                logger.info("Searching for episode #%d of %s: unknown error..." % (n, config['title']))
                 break
 
         #print(feed.entries)
