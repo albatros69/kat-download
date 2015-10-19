@@ -5,9 +5,12 @@ from __future__ import (unicode_literals, absolute_import, print_function, divis
 
 from feedparser import parse
 from urllib import quote
+from ssl import SSLError
+from xml.sax._exceptions import SAXParseException as ParseException
 from ConfigParser import RawConfigParser
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
+from time import sleep
 import logging, logging.handlers
 import re, glob, os
 
@@ -33,10 +36,30 @@ def search_for_available_download(number, config):
             return number
 
     n = number
+    retries = 0
     while True:
         #feed = parse('naruto.xml')
         keywords = config['searchkeywords'] % { 'number': n }
-        feed = parse('http://kat.cr/usearch/%s/?rss=1' % (quote(keywords), ))
+        #print('https://cohen.glop.ovh/kat/%s/?rss=1' % (quote(keywords), ))
+        feed = parse('https://cohen.glop.ovh/kat/%s/?rss=1' % (quote(keywords), ))
+        if feed.bozo:
+            if isinstance(feed.bozo_exception, SSLError):
+                logger.info("Recherche de l'épisode #%d de %s : SSLError" % (n, config['title']))
+                if retries < 10:
+                    retries += 1
+                    sleep(2)
+                    continue
+                else:
+                    break
+            elif isinstance(feed.bozo_exception, ParseException):
+                logger.info("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
+                #print("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
+                break
+            else:
+                logger.info("Recherche de l'épisode #%d de %s : autre erreur..." % (n, config['title']))
+                break
+
+        #print(feed.entries)
         for e in feed.entries:
             m = filepattern.search(e['title'])
             if m and int(m.group('number')) == n:
@@ -44,7 +67,7 @@ def search_for_available_download(number, config):
                 print("Searching for episode #%d of %s : download starting..." % (n, config['title']))
                 with open(os.path.abspath(os.path.join(config['torrentdest'], os.path.basename(e['torrent_filename']))), 'w') as torrent:
                     torrent.write("d10:magnet-uri%d:%se" % (len(e['torrent_magneturi']), e['torrent_magneturi']))
-                n += 1
+                retries = 0; n += 1
                 break
         else:
             logger.info("Searching episode #%d of %s : not available..." % (n, config['title']))
