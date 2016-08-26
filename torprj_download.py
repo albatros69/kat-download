@@ -26,7 +26,6 @@ logger.addHandler(handler)
 
 
 def search_for_available_download(number, config):
-    filepattern = re.compile(config['filepattern'].decode('string-escape'), re.IGNORECASE)
     if 'last_download' in config and config['last_download']:
         #lastdownload = datetime.strptime(config['last_download'], "%Y-%m-%d %H:%M:%S.%f")
         lastdownload = arrow.get(config['last_download'])
@@ -39,6 +38,7 @@ def search_for_available_download(number, config):
         return number
 
     # Search for files recently downloaded and that match the file pattern
+    filepattern = re.compile(config['filepattern'].decode('string-escape'), re.IGNORECASE)
     for f in glob.glob(config['filepath']):
         m = filepattern.search(os.path.basename(f))
         if m and int(m.group('number'))+1 >= number and \
@@ -50,7 +50,6 @@ def search_for_available_download(number, config):
     n = number
     retries = 0
     while True:
-        #feed = parse('naruto.xml')
         keywords = config['searchkeywords'] % { 'number': n }
         feed = parse('https://torrentproject.se/rss/%s/' % (quote(keywords), ))
         if feed.bozo:
@@ -99,7 +98,7 @@ if __name__ == '__main__':
     Parser.add_argument("what", nargs='+', metavar="CONFIG_SECTION",
                         help="Sections of the configuration file where to get the download details.")
     Args = Parser.parse_args()
-    
+
     Config = RawConfigParser(defaults= { 'number': 1 })
     Config.read(Args.config)
 
