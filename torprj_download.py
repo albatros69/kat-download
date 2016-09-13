@@ -5,7 +5,7 @@ from __future__ import (unicode_literals, absolute_import, print_function, divis
 
 from feedparser import parse
 from urllib import quote
-from requests import get
+from cfscrape import create_scraper
 from ssl import SSLError
 from xml.sax._exceptions import SAXParseException as ParseException
 from ConfigParser import RawConfigParser
@@ -49,9 +49,10 @@ def search_for_available_download(number, config):
 
     n = number
     retries = 0
+    scraper = create_scraper()
     while True:
         keywords = config['searchkeywords'] % { 'number': n }
-        feed = parse('https://torrentproject.se/rss/%s/' % (quote(keywords), ))
+        feed = parse(scraper.get('https://torrentproject.se/rss/%s/' % (quote(keywords), )).content)
         if feed.bozo:
             if isinstance(feed.bozo_exception, SSLError):
                 logger.info("Recherche de l'épisode #%d de %s : SSLError" % (n, config['title']))
@@ -77,7 +78,7 @@ def search_for_available_download(number, config):
                 print("Épisode #%d de %s : démarrage du téléchargement..." % (n, config['title']))
                 for url in [ a['href'] for a in e['links'] if a['type'] == 'application/x-bittorrent' ]:
                     with open(os.path.abspath(os.path.join(config['torrentdest'], os.path.basename(url))), 'w') as torrent:
-                        torrent.write(get(url, stream=True).content)
+                        torrent.write(scraper.get(url, stream=True).content)
                 retries = 0; n += 1
                 break
         else:
