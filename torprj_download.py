@@ -5,6 +5,7 @@ from __future__ import (unicode_literals, absolute_import, print_function, divis
 
 from feedparser import parse
 from urllib import quote
+#from requests import get
 from cfscrape import create_scraper
 from ssl import SSLError
 from xml.sax._exceptions import SAXParseException as ParseException
@@ -25,7 +26,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def search_for_available_download(number, config):
+def search_for_available_download(number, config, num_forced=False):
     if 'last_download' in config and config['last_download']:
         #lastdownload = datetime.strptime(config['last_download'], "%Y-%m-%d %H:%M:%S.%f")
         lastdownload = arrow.get(config['last_download'])
@@ -33,21 +34,24 @@ def search_for_available_download(number, config):
         #lastdownload = datetime.now() + timedelta(days=-4)
         lastdownload = arrow.now().replace(days=-4)
 
-    if lastdownload > arrow.now().replace(days=-2):
+    if not num_forced and lastdownload > arrow.now().replace(days=-2):
         logger.info('%s : dernier téléchargement trop récent %s...' % (config['title'], lastdownload.humanize(locale='fr_FR'), ) )
         return number
 
     # Search for files recently downloaded and that match the file pattern
     filepattern = re.compile(config['filepattern'].decode('string-escape'), re.IGNORECASE)
+    tmp_num = 0
     for f in glob.glob(config['filepath']):
         m = filepattern.search(os.path.basename(f))
-        if m and int(m.group('number'))+1 >= number and \
-           arrow.get(os.path.getmtime(f)) > arrow.now().replace(days=-2):
-            #print('Fichier "%s" trop récent...' % (f, ))
-            logger.info('%s : Fichier "%s" trop récent %s...' % (config['title'], os.path.basename(f), arrow.get(os.path.getmtime(f)).humanize(locale='fr_FR'), ) )
-            return number
+        if not num_forced and m and int(m.group('number')) >= number:
+            #print('Fichier "%s" déjà téléchargé...' % (f, ))
+            logger.info('%s : Fichier "%s" déjà téléchargé %s...' % (config['title'], os.path.basename(f), arrow.get(os.path.getmtime(f)).humanize(locale='fr_FR'), ) )
+            tmp_num = max(tmp_num, int(m.group('number')))
 
-    n = number
+    if tmp_num:
+        n = tmp_num+1
+    else:
+        n = number
     retries = 0
     scraper = create_scraper()
     while True:
@@ -86,6 +90,9 @@ def search_for_available_download(number, config):
             #print("Recherche de l'épisode #%d de %s : pas disponible..." % (n, config['title']))
             break
 
+        if num_forced:
+            break
+
     return n
 
 
@@ -106,15 +113,18 @@ if __name__ == '__main__':
     for w in Args.what:
 
         EpisodeNumber = Args.number
+        num_forced = True
         if EpisodeNumber == 0:
             EpisodeNumber = Config.getint(w, 'number')
+            num_forced = False
         if EpisodeNumber == 0:
             EpisodeNumber = 1
+            num_forced = False
 
-        n = search_for_available_download(EpisodeNumber, dict(Config.items(w)))
-        if n:
+        n = search_for_available_download(EpisodeNumber, dict(Config.items(w)), num_forced)
+        if not num_forced and n:
             Config.set(w, 'number', n)
-        if n > EpisodeNumber:
+        if not num_forced and n > EpisodeNumber:
             Config.set(w, 'last_download', str(arrow.now()))
 
     with open(Args.config, 'wb') as configfile:
