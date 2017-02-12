@@ -109,6 +109,7 @@ if __name__ == '__main__':
 
     Config = RawConfigParser(defaults= { 'number': 1 })
     Config.read(Args.config)
+    chgt = False
 
     for w in Args.what:
 
@@ -125,10 +126,10 @@ if __name__ == '__main__':
         if not num_forced and n:
             Config.set(w, 'number', n)
         if not num_forced and n > EpisodeNumber:
+            chgt = True
             Config.set(w, 'last_download', str(arrow.now()))
 
-    with open(Args.config, 'wb') as configfile:
-        Config.write(configfile)
-
-
+    if chgt:
+        with open(Args.config, 'wb') as configfile:
+            Config.write(configfile)
 
