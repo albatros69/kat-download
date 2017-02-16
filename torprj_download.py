@@ -27,17 +27,6 @@ logger.addHandler(handler)
 
 
 def search_for_available_download(number, config, num_forced=False):
-    if 'last_download' in config and config['last_download']:
-        #lastdownload = datetime.strptime(config['last_download'], "%Y-%m-%d %H:%M:%S.%f")
-        lastdownload = arrow.get(config['last_download'])
-    else:
-        #lastdownload = datetime.now() + timedelta(days=-4)
-        lastdownload = arrow.now().replace(days=-4)
-
-    if not num_forced and lastdownload > arrow.now().replace(days=-2):
-        logger.info('%s : dernier téléchargement trop récent %s...' % (config['title'], lastdownload.humanize(locale='fr_FR'), ) )
-        return number
-
     # Search for files recently downloaded and that match the file pattern
     filepattern = re.compile(config['filepattern'].decode('string-escape'), re.IGNORECASE)
     tmp_num = 0
@@ -52,6 +41,18 @@ def search_for_available_download(number, config, num_forced=False):
         n = tmp_num+1
     else:
         n = number
+
+    if 'last_download' in config and config['last_download']:
+        #lastdownload = datetime.strptime(config['last_download'], "%Y-%m-%d %H:%M:%S.%f")
+        lastdownload = arrow.get(config['last_download'])
+    else:
+        #lastdownload = datetime.now() + timedelta(days=-4)
+        lastdownload = arrow.now().replace(days=-4)
+
+    if not num_forced and lastdownload > arrow.now().replace(days=-2):
+        logger.info('%s : dernier téléchargement trop récent %s...' % (config['title'], lastdownload.humanize(locale='fr_FR'), ) )
+        return n
+
     retries = 0
     scraper = create_scraper()
     while True:
